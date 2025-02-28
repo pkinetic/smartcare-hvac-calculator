@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, BarChart, Bar, TooltipFormatter } from 'recharts';
+import { LineChart, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 // Define types
 interface MonthlyData {
@@ -57,11 +57,11 @@ const THEME = {
   primary: 'rgb(63, 185, 236)', // Vibrant blue accent color
   dark: {
     background: '#121212', // Very dark background
-    surface: '#1e1e1e',    // Slightly lighter surface
-    card: '#252525',       // Card background
+    surface: '#1e1e1e', // Slightly lighter surface
+    card: '#252525', // Card background
     text: {
       primary: '#ffffff',
-      secondary: '#cccccc', 
+      secondary: '#cccccc',
       muted: '#999999',
     }
   }
@@ -82,7 +82,7 @@ const EnergyCalculator: React.FC = () => {
   const [useManualInput, setUseManualInput] = useState<boolean>(false);
   const [manualHeatingCost, setManualHeatingCost] = useState<string>('0');
   const [manualCoolingCost, setManualCoolingCost] = useState<string>('0');
-  
+
   // State for calculated values
   const [currentHeatingCost, setCurrentHeatingCost] = useState<number>(0);
   const [currentCoolingCost, setCurrentCoolingCost] = useState<number>(0);
@@ -91,28 +91,27 @@ const EnergyCalculator: React.FC = () => {
   const [monthlySavings, setMonthlySavings] = useState<Savings>({ heating: 0, cooling: 0, total: 0 });
   const [annualSavings, setAnnualSavings] = useState<Savings>({ heating: 0, cooling: 0, total: 0 });
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
-  
+
   // Calculate energy costs when inputs change
   useEffect(() => {
     if (useManualInput) {
       // Use manually entered costs
       const currentHeating = parseFloat(manualHeatingCost) || 0;
       const currentCooling = parseFloat(manualCoolingCost) || 0;
-      
+
       // Calculate heat pump costs based on a typical reduction percentage
-      // This is a simplified approach since we don't know the exact usage
       const heatPumpHeating = currentHeating * (1 / SYSTEM_EFFICIENCY.heatPump.heating);
-      const heatPumpCooling = coolingSystem !== 'No Cooling' ? 
+      const heatPumpCooling = coolingSystem !== 'No Cooling' ?
         currentCooling * (currentSEER / SYSTEM_EFFICIENCY.heatPump.cooling) : 0;
-      
+
       updateCosts(currentHeating, currentCooling, heatPumpHeating, heatPumpCooling);
     } else {
       // Calculate based on home size and system efficiencies
       let heatingCost = 0;
-      
+
       // Calculate heating costs
       const heatingBTU = homeSize * ENERGY_CONSUMPTION.heating;
-      
+
       if (heatingSystem === 'Oil Furnace') {
         // Convert BTU to liters of oil (1 liter ≈ 36,000 BTU with 80% efficiency)
         const oilLiters = (heatingBTU * SEASON_HOURS.heating) / (36000 * SYSTEM_EFFICIENCY.heating[heatingSystem]);
@@ -126,7 +125,7 @@ const EnergyCalculator: React.FC = () => {
         const gasVolume = (heatingBTU * SEASON_HOURS.heating) / (35300 * SYSTEM_EFFICIENCY.heating[heatingSystem]);
         heatingCost = gasVolume * gasRate;
       }
-      
+
       // Calculate cooling costs
       let coolingCost = 0;
       if (coolingSystem !== 'No Cooling') {
@@ -134,29 +133,29 @@ const EnergyCalculator: React.FC = () => {
         const kWh = (coolingBTU * SEASON_HOURS.cooling) / (3412 * (currentSEER / 10)); // Adjusting for SEER
         coolingCost = kWh * electricityRate;
       }
-      
+
       // Calculate heat pump costs
       // Heat pump heating: using COP (Coefficient of Performance) for efficiency
-      const heatPumpHeatingKWh = (homeSize * ENERGY_CONSUMPTION.heating * SEASON_HOURS.heating) / 
+      const heatPumpHeatingKWh = (homeSize * ENERGY_CONSUMPTION.heating * SEASON_HOURS.heating) /
         (3412 * SYSTEM_EFFICIENCY.heatPump.heating);
       const heatPumpHeatingCost = heatPumpHeatingKWh * electricityRate;
-      
+
       // Heat pump cooling: using SEER rating for efficiency
       let heatPumpCoolingCost = 0;
       if (coolingSystem !== 'No Cooling') {
-        const heatPumpCoolingKWh = (homeSize * ENERGY_CONSUMPTION.cooling * SEASON_HOURS.cooling) / 
+        const heatPumpCoolingKWh = (homeSize * ENERGY_CONSUMPTION.cooling * SEASON_HOURS.cooling) /
           (3412 * (SYSTEM_EFFICIENCY.heatPump.cooling / 10));
         heatPumpCoolingCost = heatPumpCoolingKWh * electricityRate;
       }
-      
+
       updateCosts(heatingCost, coolingCost, heatPumpHeatingCost, heatPumpCoolingCost);
     }
   }, [
-    homeSize, heatingSystem, coolingSystem, electricityRate, 
-    oilRate, gasRate, currentSEER, useManualInput, 
+    homeSize, heatingSystem, coolingSystem, electricityRate,
+    oilRate, gasRate, currentSEER, useManualInput,
     manualHeatingCost, manualCoolingCost
   ]);
-  
+
   // Helper function to update all cost states
   const updateCosts = (currentHeating: number, currentCooling: number, heatPumpHeating: number, heatPumpCooling: number): void => {
     // Annual costs
@@ -164,37 +163,37 @@ const EnergyCalculator: React.FC = () => {
     setCurrentCoolingCost(currentCooling);
     setHeatPumpHeatingCost(heatPumpHeating);
     setHeatPumpCoolingCost(heatPumpCooling);
-    
+
     // Calculate savings
     const heatingSavings = currentHeating - heatPumpHeating;
     const coolingSavings = currentCooling - heatPumpCooling;
     const totalSavings = heatingSavings + coolingSavings;
-    
+
     // Set monthly and annual savings
     setMonthlySavings({
       heating: heatingSavings / 12,
       cooling: coolingSavings / 12,
       total: totalSavings / 12
     });
-    
+
     setAnnualSavings({
       heating: heatingSavings,
       cooling: coolingSavings,
       total: totalSavings
     });
-    
+
     // Generate monthly data for charts
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     // Heating is higher in winter, cooling is higher in summer
     const heatingDistribution = [0.18, 0.16, 0.12, 0.08, 0.04, 0.01, 0.01, 0.01, 0.03, 0.07, 0.12, 0.17];
     const coolingDistribution = [0.01, 0.01, 0.02, 0.05, 0.10, 0.18, 0.22, 0.20, 0.12, 0.06, 0.02, 0.01];
-    
+
     const data: MonthlyData[] = months.map((month, i) => {
       const currentMonthHeating = currentHeating * heatingDistribution[i];
       const currentMonthCooling = currentCooling * coolingDistribution[i];
       const heatPumpMonthHeating = heatPumpHeating * heatingDistribution[i];
       const heatPumpMonthCooling = heatPumpCooling * coolingDistribution[i];
-      
+
       return {
         name: month,
         currentTotal: currentMonthHeating + currentMonthCooling,
@@ -202,10 +201,10 @@ const EnergyCalculator: React.FC = () => {
         savings: (currentMonthHeating + currentMonthCooling) - (heatPumpMonthHeating + heatPumpMonthCooling)
       };
     });
-    
+
     setMonthlyData(data);
   };
-  
+
   // Format currency values
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('en-CA', {
@@ -232,12 +231,12 @@ const EnergyCalculator: React.FC = () => {
         <div className="w-24 h-1 mx-auto" style={{ backgroundColor: THEME.primary }}></div>
         <p className="text-gray-300 mt-3">Estimate your potential savings with a high-efficiency cold climate heat pump</p>
       </div>
-      
+
       {/* Input Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-gray-800 p-5 rounded-lg border border-gray-700">
           <h2 className="text-xl font-semibold mb-4" style={{ color: THEME.primary }}>Home Details</h2>
-          
+
           <div className="mb-4">
             <label className="block text-gray-300 mb-2">Home Size (sq. ft.)</label>
             <input
@@ -255,7 +254,7 @@ const EnergyCalculator: React.FC = () => {
               <span className="text-sm text-gray-400">4000</span>
             </div>
           </div>
-          
+
           <div className="mb-4 flex items-center">
             <input
               type="checkbox"
@@ -268,7 +267,7 @@ const EnergyCalculator: React.FC = () => {
               Use manual cost input instead
             </label>
           </div>
-          
+
           {useManualInput ? (
             <div className="space-y-4">
               <div>
@@ -306,7 +305,7 @@ const EnergyCalculator: React.FC = () => {
                   <option value="Gas Furnace">Gas Furnace</option>
                 </select>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-300 mb-2">Current Cooling System</label>
                 <select
@@ -319,7 +318,7 @@ const EnergyCalculator: React.FC = () => {
                   <option value="No Cooling">No Cooling</option>
                 </select>
               </div>
-              
+
               {coolingSystem !== 'No Cooling' && (
                 <div className="mb-4">
                   <label className="block text-gray-300 mb-2">Current AC SEER Rating</label>
@@ -342,10 +341,10 @@ const EnergyCalculator: React.FC = () => {
             </>
           )}
         </div>
-        
+
         <div className="bg-gray-800 p-5 rounded-lg border border-gray-700">
           <h2 className="text-xl font-semibold mb-4" style={{ color: THEME.primary }}>Energy Rates</h2>
-          
+
           <div className="mb-4">
             <label className="block text-gray-300 mb-2">Electricity Rate ($/kWh)</label>
             <input
@@ -357,7 +356,7 @@ const EnergyCalculator: React.FC = () => {
               placeholder="Nova Scotia electricity rate"
             />
           </div>
-          
+
           {heatingSystem === 'Oil Furnace' && (
             <div className="mb-4">
               <label className="block text-gray-300 mb-2">Oil Rate ($/liter)</label>
@@ -371,7 +370,7 @@ const EnergyCalculator: React.FC = () => {
               />
             </div>
           )}
-          
+
           {heatingSystem === 'Gas Furnace' && (
             <div className="mb-4">
               <label className="block text-gray-300 mb-2">Gas Rate ($/cubic meter)</label>
@@ -385,7 +384,7 @@ const EnergyCalculator: React.FC = () => {
               />
             </div>
           )}
-          
+
           <div className="mt-6">
             <h3 className="text-lg font-medium mb-2" style={{ color: THEME.primary }}>Heat Pump Information</h3>
             <div className="bg-gray-700 p-3 rounded-md border-l-4" style={{ borderColor: THEME.primary }}>
@@ -402,11 +401,11 @@ const EnergyCalculator: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Results Section */}
       <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 mb-8">
         <h2 className="text-2xl font-bold mb-4 text-center" style={{ color: THEME.primary }}>Your Potential Savings</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-700 p-4 rounded-lg shadow-sm">
             <h3 className="text-lg font-semibold mb-2" style={{ color: THEME.primary }}>Current Annual Costs</h3>
@@ -425,7 +424,7 @@ const EnergyCalculator: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gray-700 p-4 rounded-lg shadow-sm">
             <h3 className="text-lg font-semibold mb-2" style={{ color: THEME.primary }}>Heat Pump Annual Costs</h3>
             <div className="mt-3 space-y-2">
@@ -443,7 +442,7 @@ const EnergyCalculator: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="p-4 rounded-lg shadow-sm" style={{ backgroundColor: 'rgba(63, 185, 236, 0.15)' }}>
             <h3 className="text-lg font-semibold mb-2" style={{ color: THEME.primary }}>Annual Savings</h3>
             <div className="mt-3 space-y-2">
@@ -456,89 +455,66 @@ const EnergyCalculator: React.FC = () => {
                 <span className="font-medium" style={{ color: THEME.primary }}>{formatCurrency(annualSavings.cooling)}</span>
               </div>
               <div className="flex justify-between border-t border-gray-600 pt-2">
-                <span className="text-gray-300 font-semibold">Total Savings:</span>
+                <span className="text-gray-300 font-semibold">Total:</span>
                 <span className="font-semibold" style={{ color: THEME.primary }}>{formatCurrency(annualSavings.total)}</span>
               </div>
             </div>
           </div>
         </div>
-        
-        <div className="mt-4 text-center">
-          <p className="text-xl font-bold mb-2" style={{ color: THEME.primary }}>
-            You could save approximately {formatCurrency(annualSavings.total)} annually!
-          </p>
-          <p className="text-gray-300">
-            That's about {formatCurrency(monthlySavings.total)} per month in energy savings.
-          </p>
-        </div>
-      </div>
-      
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md border border-gray-700">
-          <h3 className="text-lg font-semibold mb-3" style={{ color: THEME.primary }}>Monthly Cost Comparison</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart 
-                data={monthlyData} 
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-              >
-                <XAxis dataKey="name" stroke="#999999" />
-                <YAxis tickFormatter={(value) => `$${value}`} stroke="#999999" />
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-center" style={{ color: THEME.primary }}>Monthly Energy Costs</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={monthlyData}>
+                <XAxis dataKey="name" stroke="#cccccc" />
+                <YAxis stroke="#cccccc" />
                 <Tooltip 
-                  formatter={(value) => {
-                    if (typeof value === 'number') {
-                      return [`$${Math.round(value)}`, ''];
-                    }
-                    return ['', ''];
-                  }}
-                  contentStyle={{ backgroundColor: '#333', borderColor: '#444' }}
+                  formatter={currencyFormatter}
+                  contentStyle={{ backgroundColor: '#252525', border: 'none' }}
                   labelStyle={{ color: THEME.primary }}
-                  itemStyle={{ color: '#fff' }}
                 />
-                <Legend wrapperStyle={{ color: '#cccccc' }} />
-                <Line type="monotone" dataKey="currentTotal" name="Current System" stroke="#888888" strokeWidth={2} />
-                <Line type="monotone" dataKey="heatPumpTotal" name="Heat Pump" stroke={THEME.primary} strokeWidth={2} />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="currentTotal" 
+                  name="Current System" 
+                  stroke="#ff4500" 
+                  strokeWidth={2}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="heatPumpTotal" 
+                  name="Heat Pump" 
+                  stroke="#3fb9ec" 
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md border border-gray-700">
-          <h3 className="text-lg font-semibold mb-3" style={{ color: THEME.primary }}>Monthly Savings</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={monthlyData} 
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-              >
-                <XAxis dataKey="name" stroke="#999999" />
-                <YAxis tickFormatter={(value) => `$${value}`} stroke="#999999" />
+
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-center" style={{ color: THEME.primary }}>Monthly Savings</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={monthlyData}>
+                <XAxis dataKey="name" stroke="#cccccc" />
+                <YAxis stroke="#cccccc" />
                 <Tooltip 
-                  formatter={(value) => {
-                    if (typeof value === 'number') {
-                      return [`$${Math.round(value)}`, 'Savings'];
-                    }
-                    return ['', ''];
-                  }}
-                  contentStyle={{ backgroundColor: '#333', borderColor: '#444' }}
+                  formatter={currencyFormatterWithLabel}
+                  contentStyle={{ backgroundColor: '#252525', border: 'none' }}
                   labelStyle={{ color: THEME.primary }}
-                  itemStyle={{ color: '#fff' }}
                 />
-                <Bar dataKey="savings" name="Monthly Savings" fill={THEME.primary} />
+                <Legend />
+                <Bar 
+                  dataKey="savings" 
+                  name="Monthly Savings" 
+                  fill={THEME.primary} 
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
-      
-      {/* CTA Section */}
-      <div className="text-center p-6 rounded-lg" style={{ backgroundColor: THEME.primary }}>
-        <h2 className="text-2xl font-bold text-white mb-2">Ready to Start Saving?</h2>
-        <p className="mb-4 text-gray-800">Get a free consultation and personalized quote for your home.</p>
-        <button className="bg-white text-gray-900 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition duration-300">
-          Get a Quote
-        </button>
       </div>
     </div>
   );
