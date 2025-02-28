@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, BarChart, Bar } from 'recharts';
-
 // Define types
 interface MonthlyData {
   name: string;
